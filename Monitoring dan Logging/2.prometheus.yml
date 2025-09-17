@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # MLflow Model Serving Metrics
+  - job_name: 'mlflow-model'
+    static_configs:
+      - targets: ['localhost:1234']  # MLflow model serving port
+    scrape_interval: 5s
+    metrics_path: /metrics
+    
+  # MLflow Server Metrics
+  - job_name: 'mlflow-server'
+    static_configs:
+      - targets: ['localhost:5000']  # MLflow tracking server
+    scrape_interval: 10s
+    
+  # Custom Model Metrics Exporter
+  - job_name: 'model-metrics'
+    static_configs:
+      - targets: ['localhost:8000']  # Custom metrics exporter
+    scrape_interval: 5s
+    metrics_path: /metrics
+    
+  # System Metrics (Node Exporter - if installed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+    scrape_interval: 10s
+    
+  # Python Application Metrics
+  - job_name: 'python-app'
+    static_configs:
+      - targets: ['localhost:8001']  # Python app metrics
+    scrape_interval: 5s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Storage configuration
+storage:
+  tsdb:
+    retention.time: 15d
+    retention.size: 512MB

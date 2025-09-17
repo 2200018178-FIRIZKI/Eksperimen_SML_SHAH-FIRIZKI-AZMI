@@ -1,0 +1,156 @@
+name: Data Preprocessing Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'WA_Fn-UseC_-Telco-Customer-Churn.csv'
+      - 'preprocessing/**'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  preprocessing:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.12.7]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas==2.0.3 numpy==1.24.3 scikit-learn==1.3.0 joblib==1.3.1
+        pip install pytest pytest-cov  # For testing
+    
+    - name: Verify data file exists
+      run: |
+        if [ ! -f "WA_Fn-UseC_-Telco-Customer-Churn.csv" ]; then
+          echo "Error: Dataset file not found"
+          exit 1
+        fi
+        echo "Dataset file found: $(wc -l < WA_Fn-UseC_-Telco-Customer-Churn.csv) lines"
+    
+    - name: Run data preprocessing
+      run: |
+        cd preprocessing
+        python automate_SHAH-FIRIZKI-AZMI.py
+    
+    - name: Validate preprocessing output
+      run: |
+        if [ ! -f "preprocessing/telco_churn_preprocessing.csv" ]; then
+          echo "Error: Preprocessed data not generated"
+          exit 1
+        fi
+        
+        # Check if artifacts are created
+        required_files=(
+          "preprocessing/telco_churn_preprocessing.csv"
+          "preprocessing/scaler.pkl"
+          "preprocessing/label_encoders.pkl"
+          "preprocessing/feature_names.pkl"
+          "preprocessing/preprocessing_config.pkl"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "Error: Required file $file not found"
+            exit 1
+          fi
+          echo "✓ Found: $file"
+        done
+    
+    - name: Generate preprocessing report
+      run: |
+        python -c "
+        import pandas as pd
+        import json
+        from datetime import datetime
+        
+        # Load original and processed data
+        original = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
+        processed = pd.read_csv('preprocessing/telco_churn_preprocessing.csv')
+        
+        # Generate report
+        report = {
+            'timestamp': datetime.now().isoformat(),
+            'original_shape': original.shape,
+            'processed_shape': processed.shape,
+            'missing_values_original': original.isnull().sum().sum(),
+            'missing_values_processed': processed.isnull().sum().sum(),
+            'features_count': processed.shape[1] - 1,  # Exclude target
+            'target_distribution': processed['Churn'].value_counts().to_dict()
+        }
+        
+        # Save report
+        with open('preprocessing/preprocessing_report.json', 'w') as f:
+            json.dump(report, f, indent=2)
+        
+        print('Preprocessing Report Generated:')
+        print(json.dumps(report, indent=2))
+        "
+    
+    - name: Upload preprocessing artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: preprocessing-artifacts-${{ github.run_number }}
+        path: |
+          preprocessing/telco_churn_preprocessing.csv
+          preprocessing/scaler.pkl
+          preprocessing/label_encoders.pkl
+          preprocessing/feature_names.pkl
+          preprocessing/preprocessing_config.pkl
+          preprocessing/preprocessing_report.json
+        retention-days: 30
+    
+    - name: Upload to GitHub Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          preprocessing/telco_churn_preprocessing.csv
+          preprocessing/preprocessing_report.json
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    # Optional: Deploy to cloud storage (uncomment when needed)
+    # - name: Upload to Google Drive (optional)
+    #   if: success()
+    #   env:
+    #     GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+    #   run: |
+    #     # Add Google Drive upload script here
+    #     echo "Would upload to Google Drive"
+    
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ Preprocessing pipeline completed successfully!"
+        echo "📊 Artifacts uploaded with run number: ${{ github.run_number }}"
+        echo "🔗 Download artifacts from: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Preprocessing pipeline failed!"
+        echo "📋 Check logs for details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
