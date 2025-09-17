@@ -94,12 +94,12 @@ jobs:
         # Generate report
         report = {
             'timestamp': datetime.now().isoformat(),
-            'original_shape': original.shape,
-            'processed_shape': processed.shape,
-            'missing_values_original': original.isnull().sum().sum(),
-            'missing_values_processed': processed.isnull().sum().sum(),
-            'features_count': processed.shape[1] - 1,  # Exclude target
-            'target_distribution': processed['Churn'].value_counts().to_dict()
+            'original_shape': list(original.shape),
+            'processed_shape': list(processed.shape),
+            'missing_values_original': int(original.isnull().sum().sum()),
+            'missing_values_processed': int(processed.isnull().sum().sum()),
+            'features_count': int(processed.shape[1] - 1),  # Exclude target
+            'target_distribution': {k: int(v) for k, v in processed['Churn'].value_counts().to_dict().items()}
         }
         
         # Save report
