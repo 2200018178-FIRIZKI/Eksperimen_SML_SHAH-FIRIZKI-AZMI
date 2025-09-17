@@ -1,0 +1,53 @@
+# MLflow files (local database and artifacts)
+mlruns/
+mlartifacts/
+.mlflow/
+*.db
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# Model artifacts (large files)
+*.pkl
+*.joblib
+*.model
+*.h5
+*.hdf5
+
+# Data files (optional - uncomment if datasets are large)
+# *.csv
+# *.json
+# *.parquet
+
+# Monitoring logs
+prometheus_data/
+grafana_data/
+
+# Temporary files
+temp/
+tmp/
+.cache/
