@@ -392,7 +392,7 @@ def main():
         
         # Run preprocessing
         X_train, X_test, y_train, y_test = preprocessor.preprocess(
-            'WA_Fn-UseC_-Telco-Customer-Churn.csv'
+            '../WA_Fn-UseC_-Telco-Customer-Churn.csv'
         )
         
         # Performance metrics
